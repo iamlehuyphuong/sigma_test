@@ -8,9 +8,11 @@
 
 #import "ViewController.h"
 
-#define time_read_battery 10
-#define time_read_location 15
-#define time_delay_post 2
+#define time_read_battery 3
+#define time_read_location 5
+#define time_delay_post 0
+
+#define remove_when_posted NO
 
 #define server_address @"http://sigma-solutions.eu/test"
 
@@ -166,8 +168,10 @@
     }
     
     if (counter + 5 <= L.count) {
-        NSLog(@"Running on: %@", [[NSThread currentThread] name]);
         counter+=5;
+        
+        NSLog(@"Running on abc: %@ (%d-%d)" , [[NSThread currentThread] name], counter, L.count);
+
         post_index=counter;
         
         [self onPostData];
@@ -183,10 +187,21 @@
  */
 -(void) onPostData {
     
-    for (NSInteger i=5; i>0; i--) {
-        MyData* data = [L objectAtIndex:post_index-i];
-        [self post:data];
-        sleep(time_delay_post);
+    if (remove_when_posted) {
+        post_index=5;
+        while (post_index>0) {
+            MyData* data = [L firstObject];
+            [L removeObjectAtIndex:0];
+            [self post:data];
+            sleep(time_delay_post);
+
+        }
+    } else {
+        for (NSInteger i=5; i>0; i--) {
+            MyData* data = [L objectAtIndex:post_index-i];
+            [self post:data];
+            sleep(time_delay_post);
+        }
     }
 }
 
@@ -205,6 +220,8 @@
     NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
     
     AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    //manager.completionQueue = [NSThread currentThread];
+    
     NSMutableURLRequest *req = [[AFJSONRequestSerializer serializer] requestWithMethod:@"POST" URLString:server_address parameters:nil error:nil];
     req.timeoutInterval= [[[NSUserDefaults standardUserDefaults] valueForKey:@"timeoutInterval"] longValue];
     [req setValue:@"text/xml" forHTTPHeaderField:@"Content-Type"];
